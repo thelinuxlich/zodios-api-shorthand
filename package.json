@@ -7,9 +7,12 @@
   "scripts": {
     "test": "vitest run"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "zodios",
+    "zod"
+  ],
+  "author": "thelinuxlich@gmail.com",
+  "license": "MIT",
   "dependencies": {
     "@zodios/core": "^9.3.0",
     "ts-toolbelt": "^9.6.0",
