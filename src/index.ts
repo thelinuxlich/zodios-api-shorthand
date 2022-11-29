@@ -49,12 +49,7 @@ type APIEndpoint = {
 		[k in StatusCode]?: z.ZodType<unknown, z.ZodTypeDef, unknown>;
 	};
 };
-type APIConfig = {
-	[k in MethodAndAlias]?: Omit<
-		APIEndpoint,
-		k extends `GET ${string}` ? "body" : ""
-	>;
-};
+type APIConfig = Record<MethodAndAlias, APIEndpoint>;
 type ParameterPath<T, K, V, D> = V extends z.ZodType<
 	unknown,
 	z.ZodTypeDef,
@@ -198,12 +193,13 @@ export const api = <Config extends APIConfig>(config: Narrow<Config>) => {
 		if (alias === undefined) {
 			throw new Error("Missing alias");
 		}
-		const queries: ReturnType<typeof makeParameters>[] = [];
-		const headers: ReturnType<typeof makeParameters>[] = [];
-		const pathParams: ReturnType<typeof makeParameters>[] = [];
+		type P = ReturnType<typeof makeParameters>[];
+		const queries: P = [];
+		const headers: P = [];
+		const pathParams: P = [];
 		const makeParams = (
 			type: "Query" | "Header" | "Path",
-			container: ReturnType<typeof makeParameters>[],
+			container: P,
 			obj: Record<string, z.ZodType<unknown, z.ZodTypeDef, unknown>>,
 		) => {
 			for (const [_key, _value] of Object.entries(obj)) {
