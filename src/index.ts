@@ -97,7 +97,7 @@ type APIPath<Name, Info> = Name extends `${infer Method} ${infer Alias}`
 		: never
 	: never;
 
-type API<C extends APIConfig> = U.ListOf<{ [K in keyof C]: APIPath<K, C[K]> }[keyof C]>;
+type API<C extends APIConfig> = [...U.ListOf<{ [K in keyof C]: APIPath<K, C[K]> }[keyof C]>];
 
 const capitalize = (str: string) => {
 	return str.charAt(0).toUpperCase() + str.slice(1);
@@ -192,5 +192,5 @@ export const api = <Config extends APIConfig>(config: Narrow<Config>) => {
 		}
 		endpoints.push(endpoint);
 	}
-	return endpoints as unknown as API<Config>;
+	return endpoints as API<Config>;
 };
