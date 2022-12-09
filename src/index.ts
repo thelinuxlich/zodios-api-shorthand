@@ -72,34 +72,55 @@ type ParameterPath<T extends keyof ZodiosTypes, K, V, D> = V extends z.ZodType<u
 		  }
 		: never
 	: never;
-type APIPath<Name, Info> = Name extends `${infer Method} ${infer Alias}`
-	? Info extends APIEndpoint
-		? {
-				alias: `${Lowercase<Method>}${Capitalize<Alias>}`;
-				method: Lowercase<Method> extends _HTTPMethods ? Lowercase<Method> : "get";
-				path: Info["path"];
-				response: Info["response"];
-				description: Info["description"] extends DescriptionObject ? Info["description"]["path"] : never;
-				responseDescription: Info["description"] extends DescriptionObject ? Info["description"]["response"] : never;
-				parameters: [
-					...U.ListOf<
-						| {
-								[K in keyof Info["queries"]]: ParameterPath<"Query", K, Info["queries"][K], Info["description"]>;
-						  }[keyof Info["queries"]]
-						| {
-								[K in keyof Info["headers"]]: ParameterPath<"Header", K, Info["headers"][K], Info["description"]>;
-						  }[keyof Info["headers"]]
-						| {
-								[K in keyof Info["params"]]: ParameterPath<"Path", K, Info["params"][K], Info["description"]>;
-						  }[keyof Info["params"]]
-						| ParameterPath<"Body", "body", Info["body"], Info["description"]>
-					>,
-				];
-		  }
+type APIPath<Config extends APIConfig, Name = keyof Config> = U.ListOf<
+	Name extends MethodAndAlias
+		? Name extends `${infer Method} ${infer Alias}`
+			? Config[Name] extends APIEndpoint
+				? {
+						alias: `${Lowercase<Method>}${Capitalize<Alias>}`;
+						method: Lowercase<Method> extends _HTTPMethods ? Lowercase<Method> : "get";
+						path: Config[Name]["path"];
+						response: Config[Name]["response"];
+						description: Config[Name]["description"] extends DescriptionObject
+							? Config[Name]["description"]["path"]
+							: never;
+						responseDescription: Config[Name]["description"] extends DescriptionObject
+							? Config[Name]["description"]["response"]
+							: never;
+						parameters: [
+							...U.ListOf<
+								| {
+										[K in keyof Config[Name]["queries"]]: ParameterPath<
+											"Query",
+											K,
+											Config[Name]["queries"][K],
+											Config[Name]["description"]
+										>;
+								  }[keyof Config[Name]["queries"]]
+								| {
+										[K in keyof Config[Name]["headers"]]: ParameterPath<
+											"Header",
+											K,
+											Config[Name]["headers"][K],
+											Config[Name]["description"]
+										>;
+								  }[keyof Config[Name]["headers"]]
+								| {
+										[K in keyof Config[Name]["params"]]: ParameterPath<
+											"Path",
+											K,
+											Config[Name]["params"][K],
+											Config[Name]["description"]
+										>;
+								  }[keyof Config[Name]["params"]]
+								| ParameterPath<"Body", "body", Config[Name]["body"], Config[Name]["description"]>
+							>,
+						];
+				  }
+				: never
+			: never
 		: never
-	: never;
-
-type API<C extends APIConfig> = [...U.ListOf<{ [K in keyof C]: APIPath<K, C[K]> }[keyof C]>];
+>;
 
 const capitalize = (str: string) => {
 	return str.charAt(0).toUpperCase() + str.slice(1);
@@ -194,5 +215,5 @@ export const api = <Config extends APIConfig>(config: Narrow<Config>) => {
 		}
 		endpoints.push(endpoint);
 	}
-	return endpoints as API<Config>;
+	return endpoints as unknown as APIPath<Config>;
 };

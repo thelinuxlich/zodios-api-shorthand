@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { api } from "..";
 import { z } from "zod";
 import { Zodios, makeApi } from "@zodios/core";
+import { zodiosContext } from "@zodios/express";
 
 const endpoints = api({
 	"POST transactions": {
@@ -11,9 +12,6 @@ const endpoints = api({
 			offset: z.number(),
 		},
 		body: z.string(),
-		params: {
-			id: z.number(),
-		},
 		response: z.number(),
 		description: {
 			path: "Create a transaction",
@@ -41,6 +39,20 @@ const endpoints = api({
 			},
 		},
 	},
+});
+
+const ctx = zodiosContext(
+	z.object({
+		foo: z.string(),
+	}),
+);
+const app = ctx.app(makeApi(endpoints));
+app.get("/v1/transaction/:id", (req, _) => {
+	req.params.id;
+});
+app.post("/v1/transactions", (req, _) => {
+	req.query.limit;
+	req.query.offset;
 });
 
 it("Has the runtime API methods", async () => {
