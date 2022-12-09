@@ -81,18 +81,20 @@ type APIPath<Name, Info> = Name extends `${infer Method} ${infer Alias}`
 				response: Info["response"];
 				description: Info["description"] extends DescriptionObject ? Info["description"]["path"] : never;
 				responseDescription: Info["description"] extends DescriptionObject ? Info["description"]["response"] : never;
-				parameters: U.ListOf<
-					| {
-							[K in keyof Info["queries"]]: ParameterPath<"Query", K, Info["queries"][K], Info["description"]>;
-					  }[keyof Info["queries"]]
-					| {
-							[K in keyof Info["headers"]]: ParameterPath<"Header", K, Info["headers"][K], Info["description"]>;
-					  }[keyof Info["headers"]]
-					| {
-							[K in keyof Info["params"]]: ParameterPath<"Path", K, Info["params"][K], Info["description"]>;
-					  }[keyof Info["params"]]
-					| ParameterPath<"Body", "body", Info["body"], Info["description"]>
-				>;
+				parameters: [
+					...U.ListOf<
+						| {
+								[K in keyof Info["queries"]]: ParameterPath<"Query", K, Info["queries"][K], Info["description"]>;
+						  }[keyof Info["queries"]]
+						| {
+								[K in keyof Info["headers"]]: ParameterPath<"Header", K, Info["headers"][K], Info["description"]>;
+						  }[keyof Info["headers"]]
+						| {
+								[K in keyof Info["params"]]: ParameterPath<"Path", K, Info["params"][K], Info["description"]>;
+						  }[keyof Info["params"]]
+						| ParameterPath<"Body", "body", Info["body"], Info["description"]>
+					>,
+				];
 		  }
 		: never
 	: never;
