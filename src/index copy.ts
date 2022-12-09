@@ -1,21 +1,8 @@
 import { z } from "zod";
 import { makeParameters, makeErrors, ZodiosEndpointDefinition, ZodiosEndpointParameters } from "@zodios/core";
-import { U } from "ts-toolbelt";
+import { L, U } from "ts-toolbelt";
 import { Status } from "@tshttp/status";
 
-const zodiosTypes = {
-	Query: "queries",
-	Body: "body",
-	Header: "headers",
-	Path: "params",
-} as const;
-
-type ZodiosTypes = {
-	Query: "queries";
-	Body: "body";
-	Header: "headers";
-	Path: "params";
-};
 type LiteralUnion<T extends U, U = string> = T | (U & { zz_IGNORE_ME?: never });
 type StatusCode = LiteralUnion<`${typeof Status[keyof typeof Status]}`>;
 type Narrow<T> = Try<T, [], NarrowNotZod<T>>;
@@ -58,19 +45,13 @@ type APIEndpoint = {
 	};
 };
 type APIConfig = Record<MethodAndAlias, APIEndpoint>;
-type ParameterPath<T extends keyof ZodiosTypes, K, V, D> = V extends z.ZodType<unknown, z.ZodTypeDef, unknown>
-	? K extends string
-		? {
-				type: T;
-				name: K;
-				schema: V;
-				description?: D extends DescriptionObject
-					? D[ZodiosTypes[T]] extends Record<string, string>
-						? D[ZodiosTypes[T]][K]
-						: never
-					: never;
-		  }
-		: never
+type ParameterPath<T, K, V, D> = V extends z.ZodType<unknown, z.ZodTypeDef, unknown>
+	? {
+			type: T;
+			name: K extends string ? K : "";
+			schema: V;
+			description?: D extends string ? D : never;
+	  }
 	: never;
 type APIPath<Name, Info> = Name extends `${infer Method} ${infer Alias}`
 	? Info extends APIEndpoint
@@ -79,20 +60,86 @@ type APIPath<Name, Info> = Name extends `${infer Method} ${infer Alias}`
 				method: Lowercase<Method> extends _HTTPMethods ? Lowercase<Method> : "get";
 				path: Info["path"];
 				response: Info["response"];
-				description: Info["description"] extends DescriptionObject ? Info["description"]["path"] : never;
-				responseDescription: Info["description"] extends DescriptionObject ? Info["description"]["response"] : never;
-				parameters: U.ListOf<
-					| {
-							[K in keyof Info["queries"]]: ParameterPath<"Query", K, Info["queries"][K], Info["description"]>;
-					  }[keyof Info["queries"]]
-					| {
-							[K in keyof Info["headers"]]: ParameterPath<"Header", K, Info["headers"][K], Info["description"]>;
-					  }[keyof Info["headers"]]
-					| {
-							[K in keyof Info["params"]]: ParameterPath<"Path", K, Info["params"][K], Info["description"]>;
-					  }[keyof Info["params"]]
-					| ParameterPath<"Body", "body", Info["body"], Info["description"]>
-				>;
+				description: Info["description"] extends DescriptionObject
+					? Info["description"]["path"] extends string
+						? Info["description"]["path"]
+						: never
+					: never;
+				responseDescription: Info["description"] extends DescriptionObject
+					? Info["description"]["response"] extends string
+						? Info["description"]["response"]
+						: never
+					: never;
+				parameters: {
+					queries: Info["queries "] extends Record<string, z.ZodType<unknown, z.ZodTypeDef, unknown>>
+						? U.ListOf<
+								{
+									[K in keyof Info["queries"]]: ParameterPath<
+										"Query",
+										K,
+										Info["queries"][K],
+										K extends string
+											? Info["description"] extends DescriptionObject
+												? Info["description"]["queries"] extends Record<string, string>
+													? Info["description"]["queries"][K]
+													: never
+												: never
+											: never
+									>;
+								}[keyof Info["queries"]]
+						  >
+						: never;
+					headers: Info["headers"] extends Record<string, z.ZodType<unknown, z.ZodTypeDef, unknown>>
+						? U.ListOf<
+								{
+									[K in keyof Info["headers"]]: ParameterPath<
+										"Header",
+										K,
+										Info["headers"][K],
+										K extends string
+											? Info["description"] extends DescriptionObject
+												? Info["description"]["headers"] extends Record<string, string>
+													? Info["description"]["headers"][K]
+													: never
+												: never
+											: never
+									>;
+								}[keyof Info["headers"]]
+						  >
+						: never;
+					body: Info["body"] extends z.ZodType<unknown, z.ZodTypeDef, unknown>
+						? [
+								ParameterPath<
+									"Body",
+									"body",
+									Info["body"],
+									Info["description"] extends DescriptionObject
+										? Info["description"]["body"] extends string
+											? Info["description"]["body"]
+											: never
+										: never
+								>,
+						  ]
+						: never;
+					params: Info["params"] extends Record<string, z.ZodType<unknown, z.ZodTypeDef, unknown>>
+						? U.ListOf<
+								{
+									[K in keyof Info["params"]]: ParameterPath<
+										"Path",
+										K,
+										Info["params"][K],
+										K extends string
+											? Info["description"] extends DescriptionObject
+												? Info["description"]["params"] extends Record<string, string>
+													? Info["description"]["params"][K]
+													: never
+												: never
+											: never
+									>;
+								}[keyof Info["params"]]
+						  >
+						: never;
+				};
 		  }
 		: never
 	: never;
@@ -102,6 +149,13 @@ type API<C extends APIConfig> = U.ListOf<{ [K in keyof C]: APIPath<K, C[K]> }[ke
 const capitalize = (str: string) => {
 	return str.charAt(0).toUpperCase() + str.slice(1);
 };
+
+const zodiosTypes = {
+	Query: "queries",
+	Body: "body",
+	Header: "headers",
+	Path: "params",
+} as const;
 
 export const api = <Config extends APIConfig>(config: Narrow<Config>) => {
 	const endpoints = [];

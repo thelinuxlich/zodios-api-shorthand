@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { api } from "..";
 import { z } from "zod";
-import { Zodios, makeApi, ApiOf } from "@zodios/core";
+import { Zodios, makeApi } from "@zodios/core";
 
 const endpoints = api({
 	"POST transactions": {
@@ -11,6 +11,9 @@ const endpoints = api({
 			offset: z.number(),
 		},
 		body: z.string(),
+		params: {
+			id: z.number(),
+		},
 		response: z.number(),
 		description: {
 			path: "Create a transaction",
@@ -34,8 +37,7 @@ const endpoints = api({
 			path: "Find a transaction by ID",
 			response: "Returns the transaction ID",
 			errors: {
-				"404":
-					"This error is triggered when the transaction is not found in the database",
+				"404": "This error is triggered when the transaction is not found in the database",
 			},
 		},
 	},
@@ -43,7 +45,6 @@ const endpoints = api({
 
 it("Has the runtime API methods", async () => {
 	const API = new Zodios("http://foo.bar.com", makeApi(endpoints));
-	type MyApi = ApiOf<typeof API>;
 	expect(API.postTransactions).toBeDefined();
 	expect(API.getTransaction).toBeDefined();
 });
